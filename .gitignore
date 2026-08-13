@@ -1,0 +1,35 @@
+# Node & Compilación
+node_modules/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Entorno local
+.env
+.env.local
+.env.production
+
+# Netlify
+.netlify/
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# IDE & SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Cobertura y Tests
+coverage/
+.nyc_output/

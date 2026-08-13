@@ -1,0 +1,50 @@
+[build]
+  command = "npm run build && npx prisma generate"
+  functions = "dist/netlify/functions"
+  publish = "public"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PRISMA_CLI_QUERY_ENGINE_TYPE = "binary"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@prisma/client", "prisma", "bcryptjs"]
+
+# Redirección de Swagger Docs al handler de la API
+[[redirects]]
+  from = "/docs"
+  to = "/.netlify/functions/api/docs"
+  status = 200
+
+[[redirects]]
+  from = "/docs/*"
+  to = "/.netlify/functions/api/docs/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/docs-json"
+  to = "/.netlify/functions/api/docs-json"
+  status = 200
+
+# Redirección de todos los endpoints de la API (/api/v1/*)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/api/:splat"
+  status = 200
+
+# Redirección por defecto de la raíz al Swagger UI
+[[redirects]]
+  from = "/"
+  to = "/docs"
+  status = 302
+
+# Cabeceras de seguridad bancaria
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"

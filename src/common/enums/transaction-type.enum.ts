@@ -1,0 +1,15 @@
+export enum TransactionType {
+  TRANSFER = 'TRANSFER',
+  DEPOSIT = 'DEPOSIT',
+  WITHDRAWAL = 'WITHDRAWAL',
+  CARD_PAYMENT = 'CARD_PAYMENT',
+  FEE = 'FEE',
+  EXCHANGE = 'EXCHANGE',
+}
+
+export enum TransactionStatus {
+  PENDING = 'PENDING',
+  COMPLETED = 'COMPLETED',
+  REJECTED = 'REJECTED',
+  REVERSED = 'REVERSED',
+}
