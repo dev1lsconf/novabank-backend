@@ -1,7 +1,4 @@
-import { SetMetadata, createParamDecorator, ExecutionContext } from '@nestjs/common';
-
-export const IS_PUBLIC_KEY = 'isPublic';
-export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export const IdempotencyKey = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): string | undefined => {
