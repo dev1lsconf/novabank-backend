@@ -1,6 +1,6 @@
 [build]
-  command = "npm run build && npx prisma generate"
-  functions = "dist/netlify/functions"
+  command = "npx prisma generate && npm run build"
+  functions = "netlify/functions"
   publish = "public"
 
 [build.environment]
