@@ -1,8 +1,18 @@
+import 'reflect-metadata';
 import { Handler, Context, Callback } from 'aws-lambda';
 import { bootstrapServerless } from '../../src/serverless';
 
 export const handler: Handler = async (event: any, context: Context, callback: Callback) => {
   context.callbackWaitsForEmptyEventLoop = false;
+
+  // Normalizar el path eliminando el prefijo de Netlify Functions si está presente
+  if (event.path && event.path.startsWith('/.netlify/functions/api')) {
+    event.path = event.path.replace(/^\/\.netlify\/functions\/api/, '') || '/';
+  }
+  if (event.rawPath && event.rawPath.startsWith('/.netlify/functions/api')) {
+    event.rawPath = event.rawPath.replace(/^\/\.netlify\/functions\/api/, '') || '/';
+  }
+
   try {
     const server = await bootstrapServerless();
     return await server(event, context, callback);

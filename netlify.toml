@@ -9,12 +9,10 @@
 [functions]
   node_bundler = "esbuild"
   external_node_modules = [
-    "bcryptjs",
     "@nestjs/microservices",
     "@nestjs/microservices/microservices-module",
     "@nestjs/websockets",
     "@nestjs/websockets/socket-module",
-    "class-transformer",
     "class-transformer/storage",
     "fastify",
     "@nestjs/platform-fastify"
@@ -25,22 +23,26 @@
   from = "/docs"
   to = "/.netlify/functions/api/docs"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/docs/*"
   to = "/.netlify/functions/api/docs/:splat"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/docs-json"
   to = "/.netlify/functions/api/docs-json"
   status = 200
+  force = true
 
 # Redirección de todos los endpoints de la API (/api/v1/*)
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/api/:splat"
   status = 200
+  force = true
 
 # Redirección por defecto de la raíz al Swagger UI
 [[redirects]]

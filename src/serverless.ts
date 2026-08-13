@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ExpressAdapter } from '@nestjs/platform-express';
@@ -46,7 +47,7 @@ export async function bootstrapServerless(): Promise<any> {
     }),
   );
 
-  // Swagger Documentation con assets CDN para compatibilidad 100% Serverless
+  // Swagger Documentation con CDN oficial
   const swaggerConfig = new DocumentBuilder()
     .setTitle('NovaBank Core API — Sistema Bancario Empresarial')
     .setDescription(
