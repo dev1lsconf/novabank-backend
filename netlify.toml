@@ -9,7 +9,19 @@
 
 [functions]
   node_bundler = "esbuild"
-  external_node_modules = ["@prisma/client", "prisma", "bcryptjs"]
+  external_node_modules = [
+    "@prisma/client",
+    "prisma",
+    "bcryptjs",
+    "@nestjs/microservices",
+    "@nestjs/microservices/microservices-module",
+    "@nestjs/websockets",
+    "@nestjs/websockets/socket-module",
+    "class-transformer",
+    "class-transformer/storage",
+    "fastify",
+    "@nestjs/platform-fastify"
+  ]
 
 # Redirección de Swagger Docs al handler de la API
 [[redirects]]
