@@ -1,22 +1,13 @@
 [build]
   command = "npm run build"
-  functions = "netlify/functions"
+  functions = "dist/netlify/functions"
   publish = "public"
 
 [build.environment]
   NODE_VERSION = "20"
 
 [functions]
-  node_bundler = "esbuild"
-  external_node_modules = [
-    "@nestjs/microservices",
-    "@nestjs/microservices/microservices-module",
-    "@nestjs/websockets",
-    "@nestjs/websockets/socket-module",
-    "class-transformer/storage",
-    "fastify",
-    "@nestjs/platform-fastify"
-  ]
+  node_bundler = "nft"
 
 # Redirección de Swagger Docs al handler de la API
 [[redirects]]
