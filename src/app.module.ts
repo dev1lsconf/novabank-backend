@@ -4,7 +4,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
 import configuration from './config/configuration';
-import { PrismaModule } from './infra/prisma/prisma.module';
+import { JsonDbModule } from './infra/database/json-db.module';
 import { RedisModule } from './infra/redis/redis.module';
 
 import { AuthModule } from './modules/auth/auth.module';
@@ -40,7 +40,7 @@ import { RolesGuard } from './common/guards/roles.guard';
         },
       ],
     }),
-    PrismaModule,
+    JsonDbModule,
     RedisModule,
     AuthModule,
     UsersModule,

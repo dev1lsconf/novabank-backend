@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../../infra/prisma/prisma.service';
+import { JsonDbService } from '../../../infra/database/json-db.service';
 
 export interface JwtPayload {
   sub: string;
@@ -14,7 +14,7 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     private readonly configService: ConfigService,
-    private readonly prisma: PrismaService,
+    private readonly db: JsonDbService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -24,23 +24,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        nationalId: true,
-        role: true,
-        status: true,
-      },
-    });
+    const user = await this.db.findUserById(payload.sub);
 
     if (!user || user.status !== 'ACTIVE') {
       throw new UnauthorizedException('El usuario no existe o se encuentra inactivo/bloqueado.');
     }
 
-    return user;
+    return {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      nationalId: user.nationalId,
+      role: user.role,
+      status: user.status,
+    };
   }
 }

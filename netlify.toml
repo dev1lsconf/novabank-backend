@@ -1,17 +1,14 @@
 [build]
-  command = "npx prisma generate && npm run build"
+  command = "npm run build"
   functions = "netlify/functions"
   publish = "public"
 
 [build.environment]
   NODE_VERSION = "20"
-  PRISMA_CLI_QUERY_ENGINE_TYPE = "binary"
 
 [functions]
   node_bundler = "esbuild"
   external_node_modules = [
-    "@prisma/client",
-    "prisma",
     "bcryptjs",
     "@nestjs/microservices",
     "@nestjs/microservices/microservices-module",

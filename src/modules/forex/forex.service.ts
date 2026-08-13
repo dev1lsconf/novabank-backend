@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
-import { PrismaService } from '../../infra/prisma/prisma.service';
+import { JsonDbService } from '../../infra/database/json-db.service';
 import { RedisService } from '../../infra/redis/redis.service';
 import { ConvertCurrencyDto } from './dto/convert-currency.dto';
 
@@ -10,7 +10,7 @@ export class ForexService {
   private readonly CACHE_TTL = 3600; // 1 hora
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly db: JsonDbService,
     private readonly redis: RedisService,
   ) {}
 
@@ -22,11 +22,9 @@ export class ForexService {
       return JSON.parse(cached);
     }
 
-    // 2. Cache MISS: Consultar base de datos
-    this.logger.log('🔄 Forex Cache MISS: Consultando base de datos PostgreSQL...');
-    const rates = await this.prisma.exchangeRate.findMany({
-      orderBy: { baseCurrency: 'asc' },
-    });
+    // 2. Cache MISS: Consultar base de datos JSON
+    this.logger.log('🔄 Forex Cache MISS: Consultando base de datos JSON...');
+    const rates = await this.db.findAllExchangeRates();
 
     const formatted = rates.map((r) => ({
       pair: `${r.baseCurrency}/${r.targetCurrency}`,
@@ -57,14 +55,7 @@ export class ForexService {
       };
     }
 
-    const rateRecord = await this.prisma.exchangeRate.findUnique({
-      where: {
-        baseCurrency_targetCurrency: {
-          baseCurrency: from,
-          targetCurrency: to,
-        },
-      },
-    });
+    const rateRecord = await this.db.findExchangeRate(from, to);
 
     if (!rateRecord) {
       throw new NotFoundException(

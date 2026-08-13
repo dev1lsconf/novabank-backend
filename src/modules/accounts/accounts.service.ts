@@ -1,15 +1,16 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../../infra/prisma/prisma.service';
+import { JsonDbService } from '../../infra/database/json-db.service';
 import { AuditService } from '../audit/audit.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { CreateAccountDto, ChangeAccountStatusDto } from './dto/create-account.dto';
 import { IbanUtil } from '../../common/utils/iban.util';
-import { AccountStatus, Role } from '@prisma/client';
+import { Role } from '../../common/enums/role.enum';
+import { AccountStatus } from '../../common/enums/account-type.enum';
 
 @Injectable()
 export class AccountsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly db: JsonDbService,
     private readonly auditService: AuditService,
     private readonly ledgerService: LedgerService,
   ) {}
@@ -19,22 +20,20 @@ export class AccountsService {
 
     // Generar IBAN bancario único y válido
     let iban = IbanUtil.generateSpanishIban();
-    let exists = await this.prisma.account.findUnique({ where: { accountNumber: iban } });
+    let exists = await this.db.findAccountByNumber(iban);
     while (exists) {
       iban = IbanUtil.generateSpanishIban();
-      exists = await this.prisma.account.findUnique({ where: { accountNumber: iban } });
+      exists = await this.db.findAccountByNumber(iban);
     }
 
-    const account = await this.prisma.account.create({
-      data: {
-        userId: targetUserId,
-        accountNumber: iban,
-        accountType: dto.accountType,
-        currency: dto.currency || 'EUR',
-        balanceCents: BigInt(0),
-        lockedBalanceCents: BigInt(0),
-        status: AccountStatus.ACTIVE,
-      },
+    const account = await this.db.createAccount({
+      userId: targetUserId,
+      accountNumber: iban,
+      accountType: dto.accountType,
+      currency: dto.currency || 'EUR',
+      balanceCents: 0,
+      lockedBalanceCents: 0,
+      status: AccountStatus.ACTIVE,
     });
 
     await this.auditService.log({
@@ -49,42 +48,39 @@ export class AccountsService {
   }
 
   async findAllForUser(userId: string, currentRole: string) {
-    const accounts = await this.prisma.account.findMany({
-      where: currentRole === Role.ADMIN || currentRole === Role.AUDITOR ? {} : { userId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-          },
-        },
-        cards: {
-          select: {
-            id: true,
-            maskedPan: true,
-            cardType: true,
-            status: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const accounts =
+      currentRole === Role.ADMIN || currentRole === Role.AUDITOR
+        ? await this.db.findAllAccounts()
+        : await this.db.findAccountsByUserId(userId);
 
-    return accounts;
+    return accounts.map((a) => {
+      const user = this.db.users.find((u) => u.id === a.userId);
+      const cards = this.db.cards
+        .filter((c) => c.accountId === a.id)
+        .map((c) => ({
+          id: c.id,
+          maskedPan: c.maskedPan,
+          cardType: c.cardType,
+          status: c.status,
+        }));
+
+      return {
+        ...a,
+        user: user
+          ? {
+              id: user.id,
+              email: user.email,
+              firstName: user.firstName,
+              lastName: user.lastName,
+            }
+          : null,
+        cards,
+      };
+    });
   }
 
   async findOne(id: string, currentUserId: string, currentRole: string) {
-    const account = await this.prisma.account.findUnique({
-      where: { id },
-      include: {
-        user: {
-          select: { id: true, email: true, firstName: true, lastName: true },
-        },
-        cards: true,
-      },
-    });
+    const account = await this.db.findAccountById(id);
 
     if (!account) {
       throw new NotFoundException('Cuenta bancaria no encontrada.');
@@ -100,7 +96,16 @@ export class AccountsService {
       throw new ForbiddenException('No tiene permisos para consultar esta cuenta bancaria.');
     }
 
-    return account;
+    const user = this.db.users.find((u) => u.id === account.userId);
+    const cards = await this.db.findCardsByAccountId(account.id);
+
+    return {
+      ...account,
+      user: user
+        ? { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName }
+        : null,
+      cards,
+    };
   }
 
   async getStatement(id: string, currentUserId: string, currentRole: string, page = 1, limit = 50) {
@@ -109,15 +114,12 @@ export class AccountsService {
   }
 
   async changeStatus(id: string, dto: ChangeAccountStatusDto, currentUserId: string) {
-    const account = await this.prisma.account.findUnique({ where: { id } });
+    const account = await this.db.findAccountById(id);
     if (!account) {
       throw new NotFoundException('Cuenta bancaria no encontrada.');
     }
 
-    const updated = await this.prisma.account.update({
-      where: { id },
-      data: { status: dto.status },
-    });
+    const updated = await this.db.updateAccount(id, { status: dto.status });
 
     await this.auditService.log({
       userId: currentUserId,

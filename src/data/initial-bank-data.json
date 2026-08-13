@@ -1,0 +1,195 @@
+{
+  "users": [
+    {
+      "id": "c1a1a001-0000-4000-a000-000000000001",
+      "email": "admin@novabank.es",
+      "passwordHash": "$2a$10$wT8q3FmK1w7N8Fj1uR9x.e5CjF7Iqk0E7K.Jd9Gq7E4JpP6c5H.Wa",
+      "firstName": "Carlos",
+      "lastName": "Administrador",
+      "nationalId": "00000001A",
+      "role": "ADMIN",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-01T08:00:00.000Z",
+      "updatedAt": "2026-01-01T08:00:00.000Z"
+    },
+    {
+      "id": "c1a1a001-0000-4000-a000-000000000002",
+      "email": "auditor@novabank.es",
+      "passwordHash": "$2a$10$wT8q3FmK1w7N8Fj1uR9x.e5CjF7Iqk0E7K.Jd9Gq7E4JpP6c5H.Wa",
+      "firstName": "Elena",
+      "lastName": "Auditora Compliance",
+      "nationalId": "00000002B",
+      "role": "AUDITOR",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-01T08:00:00.000Z",
+      "updatedAt": "2026-01-01T08:00:00.000Z"
+    },
+    {
+      "id": "c1a1a001-0000-4000-a000-000000000003",
+      "email": "cajero@novabank.es",
+      "passwordHash": "$2a$10$wT8q3FmK1w7N8Fj1uR9x.e5CjF7Iqk0E7K.Jd9Gq7E4JpP6c5H.Wa",
+      "firstName": "Marcos",
+      "lastName": "Cajero Ventanilla",
+      "nationalId": "00000003C",
+      "role": "CAJERO",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-01T08:00:00.000Z",
+      "updatedAt": "2026-01-01T08:00:00.000Z"
+    },
+    {
+      "id": "c1a1a001-0000-4000-a000-000000000004",
+      "email": "gerente@novabank.es",
+      "passwordHash": "$2a$10$wT8q3FmK1w7N8Fj1uR9x.e5CjF7Iqk0E7K.Jd9Gq7E4JpP6c5H.Wa",
+      "firstName": "Laura",
+      "lastName": "Gerente Sucursal",
+      "nationalId": "00000004D",
+      "role": "GERENTE",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-01T08:00:00.000Z",
+      "updatedAt": "2026-01-01T08:00:00.000Z"
+    },
+    {
+      "id": "c1a1a001-0000-4000-a000-000000000005",
+      "email": "cliente@novabank.es",
+      "passwordHash": "$2a$10$wT8q3FmK1w7N8Fj1uR9x.e5CjF7Iqk0E7K.Jd9Gq7E4JpP6c5H.Wa",
+      "firstName": "Alejandro",
+      "lastName": "Navarro Sanz",
+      "nationalId": "48920193X",
+      "role": "CLIENTE",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-10T10:00:00.000Z",
+      "updatedAt": "2026-01-10T10:00:00.000Z"
+    },
+    {
+      "id": "c1a1a001-0000-4000-a000-000000000006",
+      "email": "maria.garcia@novabank.es",
+      "passwordHash": "$2a$10$wT8q3FmK1w7N8Fj1uR9x.e5CjF7Iqk0E7K.Jd9Gq7E4JpP6c5H.Wa",
+      "firstName": "María",
+      "lastName": "García López",
+      "nationalId": "52819034Y",
+      "role": "CLIENTE",
+      "status": "ACTIVE",
+      "createdAt": "2026-01-15T11:30:00.000Z",
+      "updatedAt": "2026-01-15T11:30:00.000Z"
+    }
+  ],
+  "accounts": [
+    {
+      "id": "b1b1b001-0000-4000-b000-000000000001",
+      "userId": "c1a1a001-0000-4000-a000-000000000001",
+      "accountNumber": "ES9121000418450200051332",
+      "accountType": "INTERNAL_BANK",
+      "currency": "EUR",
+      "balanceCents": 100000000000,
+      "lockedBalanceCents": 0,
+      "status": "ACTIVE",
+      "createdAt": "2026-01-01T08:00:00.000Z",
+      "updatedAt": "2026-01-01T08:00:00.000Z"
+    },
+    {
+      "id": "b1b1b001-0000-4000-b000-000000000002",
+      "userId": "c1a1a001-0000-4000-a000-000000000005",
+      "accountNumber": "ES6621000418401234567891",
+      "accountType": "CHECKING",
+      "currency": "EUR",
+      "balanceCents": 1545000,
+      "lockedBalanceCents": 0,
+      "status": "ACTIVE",
+      "createdAt": "2026-01-10T10:05:00.000Z",
+      "updatedAt": "2026-01-10T10:05:00.000Z"
+    },
+    {
+      "id": "b1b1b001-0000-4000-b000-000000000003",
+      "userId": "c1a1a001-0000-4000-a000-000000000005",
+      "accountNumber": "ES8221000418409876543210",
+      "accountType": "SAVINGS",
+      "currency": "EUR",
+      "balanceCents": 5000000,
+      "lockedBalanceCents": 0,
+      "status": "ACTIVE",
+      "createdAt": "2026-01-10T10:10:00.000Z",
+      "updatedAt": "2026-01-10T10:10:00.000Z"
+    },
+    {
+      "id": "b1b1b001-0000-4000-b000-000000000004",
+      "userId": "c1a1a001-0000-4000-a000-000000000006",
+      "accountNumber": "ES4421000418405556667778",
+      "accountType": "CHECKING",
+      "currency": "EUR",
+      "balanceCents": 820000,
+      "lockedBalanceCents": 0,
+      "status": "ACTIVE",
+      "createdAt": "2026-01-15T11:35:00.000Z",
+      "updatedAt": "2026-01-15T11:35:00.000Z"
+    }
+  ],
+  "transactions": [
+    {
+      "id": "t1t1t001-0000-4000-t000-000000000001",
+      "referenceCode": "TX-20260110-INIT01",
+      "type": "DEPOSIT",
+      "status": "COMPLETED",
+      "amountCents": 1545000,
+      "currency": "EUR",
+      "description": "Depósito inicial de apertura de cuenta corriente",
+      "idempotencyKey": "seed-deposit-001",
+      "createdBy": "c1a1a001-0000-4000-a000-000000000003",
+      "createdAt": "2026-01-10T10:05:00.000Z"
+    }
+  ],
+  "journalEntries": [
+    {
+      "id": "j1j1j001-0000-4000-j000-000000000001",
+      "transactionId": "t1t1t001-0000-4000-t000-000000000001",
+      "accountId": "b1b1b001-0000-4000-b000-000000000001",
+      "entryType": "DEBIT",
+      "amountCents": 1545000,
+      "balanceAfterCents": 100000000000,
+      "createdAt": "2026-01-10T10:05:00.000Z"
+    },
+    {
+      "id": "j1j1j001-0000-4000-j000-000000000002",
+      "transactionId": "t1t1t001-0000-4000-t000-000000000001",
+      "accountId": "b1b1b001-0000-4000-b000-000000000002",
+      "entryType": "CREDIT",
+      "amountCents": 1545000,
+      "balanceAfterCents": 1545000,
+      "createdAt": "2026-01-10T10:05:00.000Z"
+    }
+  ],
+  "cards": [
+    {
+      "id": "d1d1d001-0000-4000-d000-000000000001",
+      "accountId": "b1b1b001-0000-4000-b000-000000000002",
+      "maskedPan": "4532 **** **** 8821",
+      "panHash": "$2a$08$k1mI7JzBv7pM4C6w3A7V9e2k5L8o9Q0W1E2R3T4Y5U6I7O8P9A0S",
+      "cardType": "DEBIT",
+      "expirationDate": "2028-12-31T23:59:59.000Z",
+      "status": "ACTIVE",
+      "dailyLimitCents": 150000,
+      "createdAt": "2026-01-10T10:15:00.000Z",
+      "updatedAt": "2026-01-10T10:15:00.000Z"
+    }
+  ],
+  "exchangeRates": [
+    { "id": "e1", "baseCurrency": "EUR", "targetCurrency": "USD", "rate": 1.0855, "updatedAt": "2026-08-14T00:00:00.000Z" },
+    { "id": "e2", "baseCurrency": "EUR", "targetCurrency": "GBP", "rate": 0.8542, "updatedAt": "2026-08-14T00:00:00.000Z" },
+    { "id": "e3", "baseCurrency": "EUR", "targetCurrency": "MXN", "rate": 20.4520, "updatedAt": "2026-08-14T00:00:00.000Z" },
+    { "id": "e4", "baseCurrency": "EUR", "targetCurrency": "COP", "rate": 4350.7500, "updatedAt": "2026-08-14T00:00:00.000Z" },
+    { "id": "e5", "baseCurrency": "USD", "targetCurrency": "EUR", "rate": 0.9212, "updatedAt": "2026-08-14T00:00:00.000Z" },
+    { "id": "e6", "baseCurrency": "GBP", "targetCurrency": "EUR", "rate": 1.1706, "updatedAt": "2026-08-14T00:00:00.000Z" }
+  ],
+  "auditLogs": [
+    {
+      "id": "a1a1a001-0000-4000-a000-000000000001",
+      "userId": "c1a1a001-0000-4000-a000-000000000001",
+      "action": "SYSTEM_DATABASE_INITIALIZED",
+      "resource": "Database",
+      "resourceId": "ALL",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "NovaBank JSON Database Engine 1.0",
+      "metadata": { "status": "READY", "initialUsers": 6, "initialAccounts": 4 },
+      "createdAt": "2026-01-01T08:00:00.000Z"
+    }
+  ]
+}

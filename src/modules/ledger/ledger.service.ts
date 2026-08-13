@@ -1,16 +1,17 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
-import { PrismaService } from '../../infra/prisma/prisma.service';
-import { EntryType, TransactionType, TransactionStatus, Prisma } from '@prisma/client';
+import { JsonDbService } from '../../infra/database/json-db.service';
+import { EntryType } from '../../common/enums/entry-type.enum';
+import { TransactionType } from '../../common/enums/transaction-type.enum';
 
 export interface LedgerPosting {
   accountId: string;
   entryType: EntryType;
-  amountCents: bigint;
+  amountCents: number;
 }
 
 export interface CreateLedgerTransactionParams {
   type: TransactionType;
-  amountCents: bigint;
+  amountCents: number;
   currency: string;
   description: string;
   idempotencyKey?: string;
@@ -22,7 +23,7 @@ export interface CreateLedgerTransactionParams {
 export class LedgerService {
   private readonly logger = new Logger(LedgerService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly db: JsonDbService) {}
 
   /**
    * Valida la regla de oro de la partida doble:
@@ -33,11 +34,11 @@ export class LedgerService {
       throw new BadRequestException('Un asiento contable de partida doble requiere al menos dos cuentas (débito y crédito).');
     }
 
-    let totalDebit = 0n;
-    let totalCredit = 0n;
+    let totalDebit = 0;
+    let totalCredit = 0;
 
     for (const p of postings) {
-      if (p.amountCents <= 0n) {
+      if (p.amountCents <= 0) {
         throw new BadRequestException(`El importe del asiento debe ser estrictamente positivo. Recibido: ${p.amountCents}`);
       }
 
@@ -56,12 +57,9 @@ export class LedgerService {
   }
 
   /**
-   * Ejecuta el registro atómico de una transacción y sus asientos de diario dentro de una transacción Prisma activa.
+   * Ejecuta el registro atómico de una transacción y sus asientos de diario.
    */
-  async recordJournalEntries(
-    tx: Prisma.TransactionClient,
-    params: CreateLedgerTransactionParams,
-  ) {
+  async recordJournalEntries(params: CreateLedgerTransactionParams) {
     this.validateDoubleEntryBalance(params.postings);
 
     // 1. Generar código de referencia único TX-YYYYMMDD-XXXXXX
@@ -70,38 +68,31 @@ export class LedgerService {
     const referenceCode = `TX-${dateStr}-${randomHex}`;
 
     // 2. Crear cabecera de la transacción
-    const transaction = await tx.transaction.create({
-      data: {
-        referenceCode,
-        type: params.type,
-        status: TransactionStatus.COMPLETED,
-        amountCents: params.amountCents,
-        currency: params.currency,
-        description: params.description,
-        idempotencyKey: params.idempotencyKey,
-        createdBy: params.createdBy,
-      },
+    const transaction = await this.db.createTransaction({
+      referenceCode,
+      type: params.type,
+      status: 'COMPLETED',
+      amountCents: params.amountCents,
+      currency: params.currency,
+      description: params.description,
+      idempotencyKey: params.idempotencyKey || null,
+      createdBy: params.createdBy || null,
     });
 
     // 3. Crear los asientos contables inmutables para cada cuenta involucrada
     for (const posting of params.postings) {
-      const account = await tx.account.findUnique({
-        where: { id: posting.accountId },
-        select: { id: true, balanceCents: true },
-      });
+      const account = await this.db.findAccountById(posting.accountId);
 
       if (!account) {
         throw new BadRequestException(`Cuenta bancaria no encontrada: ${posting.accountId}`);
       }
 
-      await tx.journalEntry.create({
-        data: {
-          transactionId: transaction.id,
-          accountId: posting.accountId,
-          entryType: posting.entryType,
-          amountCents: posting.amountCents,
-          balanceAfterCents: account.balanceCents,
-        },
+      await this.db.createJournalEntry({
+        transactionId: transaction.id,
+        accountId: posting.accountId,
+        entryType: posting.entryType,
+        amountCents: posting.amountCents,
+        balanceAfterCents: account.balanceCents,
       });
     }
 
@@ -114,21 +105,10 @@ export class LedgerService {
   async getAccountStatement(accountId: string, page = 1, limit = 50) {
     const skip = (page - 1) * limit;
 
-    const [total, entries] = await Promise.all([
-      this.prisma.journalEntry.count({ where: { accountId } }),
-      this.prisma.journalEntry.findMany({
-        where: { accountId },
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          transaction: true,
-        },
-      }),
-    ]);
+    const { data, total } = await this.db.findJournalEntriesByAccountId(accountId, skip, limit);
 
     return {
-      data: entries,
+      data,
       meta: {
         total,
         page,

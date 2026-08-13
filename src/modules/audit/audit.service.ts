@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../infra/prisma/prisma.service';
+import { JsonDbService } from '../../infra/database/json-db.service';
 import { QueryAuditDto } from './dto/query-audit.dto';
 
 export interface CreateAuditLogParams {
@@ -16,20 +16,18 @@ export interface CreateAuditLogParams {
 export class AuditService {
   private readonly logger = new Logger(AuditService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly db: JsonDbService) {}
 
   async log(params: CreateAuditLogParams) {
     try {
-      return await this.prisma.auditLog.create({
-        data: {
-          userId: params.userId,
-          action: params.action,
-          resource: params.resource,
-          resourceId: params.resourceId,
-          ipAddress: params.ipAddress,
-          userAgent: params.userAgent,
-          metadata: params.metadata || {},
-        },
+      return await this.db.createAuditLog({
+        userId: params.userId,
+        action: params.action,
+        resource: params.resource,
+        resourceId: params.resourceId,
+        ipAddress: params.ipAddress,
+        userAgent: params.userAgent,
+        metadata: params.metadata || {},
       });
     } catch (error) {
       this.logger.error(`Error guardando log de auditoría: ${(error as Error).message}`);
@@ -40,34 +38,14 @@ export class AuditService {
     const { action, resource, userId, page = 1, limit = 20 } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-    if (action) where.action = { contains: action, mode: 'insensitive' };
-    if (resource) where.resource = { contains: resource, mode: 'insensitive' };
-    if (userId) where.userId = userId;
-
-    const [total, logs] = await Promise.all([
-      this.prisma.auditLog.count({ where }),
-      this.prisma.auditLog.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              role: true,
-            },
-          },
-        },
-      }),
-    ]);
+    const { data, total } = await this.db.findAuditLogs(
+      { action, resource, userId },
+      skip,
+      limit,
+    );
 
     return {
-      data: logs,
+      data,
       meta: {
         total,
         page,

@@ -2,22 +2,22 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
-  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
-import { PrismaService } from '../../infra/prisma/prisma.service';
+import { JsonDbService } from '../../infra/database/json-db.service';
 import { AuditService } from '../audit/audit.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto, AuthResponseDto, RefreshTokenDto } from './dto/login.dto';
 import { IbanUtil } from '../../common/utils/iban.util';
-import { AccountType, Role } from '@prisma/client';
+import { Role } from '../../common/enums/role.enum';
+import { AccountType } from '../../common/enums/account-type.enum';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly db: JsonDbService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly auditService: AuditService,
@@ -25,68 +25,58 @@ export class AuthService {
 
   async register(dto: RegisterDto, ipAddress?: string, userAgent?: string): Promise<AuthResponseDto> {
     // 1. Verificar unicidad de email y documento nacional
-    const existing = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ email: dto.email.toLowerCase() }, { nationalId: dto.nationalId }],
-      },
-    });
+    const existingByEmail = await this.db.findUserByEmail(dto.email);
+    if (existingByEmail) {
+      throw new ConflictException('Ya existe un usuario registrado con este correo electrónico.');
+    }
 
-    if (existing) {
-      if (existing.email.toLowerCase() === dto.email.toLowerCase()) {
-        throw new ConflictException('Ya existe un usuario registrado con este correo electrónico.');
-      }
+    const existingByNationalId = await this.db.findUserByNationalId(dto.nationalId);
+    if (existingByNationalId) {
       throw new ConflictException('Ya existe un usuario registrado con este documento de identidad.');
     }
 
     // 2. Hash de contraseña
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    // 3. Crear usuario y cuenta corriente inicial en transacción atómica
-    const user = await this.prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          email: dto.email.toLowerCase(),
-          passwordHash,
-          firstName: dto.firstName,
-          lastName: dto.lastName,
-          nationalId: dto.nationalId,
-          role: dto.role || Role.CLIENTE,
-        },
-      });
-
-      // Crear cuenta corriente bancaria por defecto para el cliente
-      const iban = IbanUtil.generateSpanishIban();
-      await tx.account.create({
-        data: {
-          userId: newUser.id,
-          accountNumber: iban,
-          accountType: AccountType.CHECKING,
-          currency: 'EUR',
-          balanceCents: BigInt(0),
-        },
-      });
-
-      return newUser;
+    // 3. Crear usuario
+    const newUser = await this.db.createUser({
+      email: dto.email.toLowerCase(),
+      passwordHash,
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      nationalId: dto.nationalId,
+      role: dto.role || Role.CLIENTE,
+      status: 'ACTIVE',
     });
 
-    // 4. Auditoría
+    // 4. Crear cuenta corriente bancaria inicial para el cliente
+    const iban = IbanUtil.generateSpanishIban();
+    await this.db.createAccount({
+      userId: newUser.id,
+      accountNumber: iban,
+      accountType: AccountType.CHECKING,
+      currency: 'EUR',
+      balanceCents: 0,
+      lockedBalanceCents: 0,
+      status: 'ACTIVE',
+    });
+
+    // 5. Auditoría
     await this.auditService.log({
-      userId: user.id,
+      userId: newUser.id,
       action: 'USER_REGISTERED',
       resource: 'User',
-      resourceId: user.id,
+      resourceId: newUser.id,
       ipAddress,
       userAgent,
-      metadata: { email: user.email, role: user.role },
+      metadata: { email: newUser.email, role: newUser.role },
     });
 
-    return this.generateTokens(user);
+    return this.generateTokens(newUser);
   }
 
   async login(dto: LoginDto, ipAddress?: string, userAgent?: string): Promise<AuthResponseDto> {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email.toLowerCase() },
-    });
+    const user = await this.db.findUserByEmail(dto.email);
 
     if (!user) {
       throw new UnauthorizedException('Credenciales de acceso incorrectas.');
@@ -126,9 +116,7 @@ export class AuthService {
         this.configService.get<string>('jwt.refreshSecret') || 'novabank_refresh_secret_key_2026_abc123';
       const payload = this.jwtService.verify(dto.refreshToken, { secret: refreshSecret });
 
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.sub },
-      });
+      const user = await this.db.findUserById(payload.sub);
 
       if (!user || user.status !== 'ACTIVE') {
         throw new UnauthorizedException('Sesión no válida o expirada.');

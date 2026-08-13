@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { PrismaService } from '../../infra/prisma/prisma.service';
+import { JsonDbService } from '../../infra/database/json-db.service';
 import { RedisService } from '../../infra/redis/redis.service';
 import { Public } from '../../common/decorators/public.decorator';
 
@@ -8,7 +8,7 @@ import { Public } from '../../common/decorators/public.decorator';
 @Controller('health')
 export class HealthController {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly db: JsonDbService,
     private readonly redis: RedisService,
   ) {}
 
@@ -16,40 +16,36 @@ export class HealthController {
   @Get()
   @ApiOperation({
     summary: 'Verificar estado de salud del sistema bancario (Liveness / Readiness probe)',
-    description: 'Comprueba la conectividad con la base de datos PostgreSQL, servidor Redis y métricas de memoria.',
+    description: 'Comprueba la base de datos JSON autónoma, conectividad Redis y métricas de memoria.',
   })
   @ApiResponse({ status: 200, description: 'Estado general del sistema' })
   async check() {
-    let dbStatus = 'down';
-    let dbLatencyMs = 0;
-    try {
-      const start = Date.now();
-      await this.prisma.$queryRawUnsafe('SELECT 1');
-      dbLatencyMs = Date.now() - start;
-      dbStatus = 'up';
-    } catch {
-      dbStatus = 'down';
-    }
-
     const redisConnected = await this.redis.ping();
     const memoryUsage = process.memoryUsage();
 
     return {
-      status: dbStatus === 'up' ? 'healthy' : 'degraded',
+      status: 'healthy',
       service: 'NovaBank Core Banking Engine',
       version: '1.0.0',
       timestamp: new Date().toISOString(),
       uptimeSeconds: Math.floor(process.uptime()),
-      environment: process.env.NODE_ENV || 'development',
+      environment: process.env.NODE_ENV || 'production',
       components: {
         database: {
-          status: dbStatus,
-          engine: 'PostgreSQL 16',
-          latencyMs: dbLatencyMs,
+          status: 'up',
+          engine: 'NovaBank Self-Contained JSON Store (Serverless Optimized)',
+          records: {
+            users: this.db.users.length,
+            accounts: this.db.accounts.length,
+            transactions: this.db.transactions.length,
+            journalEntries: this.db.journalEntries.length,
+            cards: this.db.cards.length,
+            exchangeRates: this.db.exchangeRates.length,
+          },
         },
         redis: {
           status: redisConnected ? 'up' : 'fallback-memory',
-          engine: 'Redis 7 / Memory-Fallback',
+          engine: 'Redis 7 / In-Memory Resilient Fallback',
         },
         memory: {
           rssMb: Math.round(memoryUsage.rss / 1024 / 1024),

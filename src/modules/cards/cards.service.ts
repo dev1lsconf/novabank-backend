@@ -5,22 +5,21 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
-import { PrismaService } from '../../infra/prisma/prisma.service';
+import { JsonDbService } from '../../infra/database/json-db.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateCardDto, UpdateCardLimitDto } from './dto/create-card.dto';
-import { CardStatus, Role } from '@prisma/client';
+import { Role } from '../../common/enums/role.enum';
+import { CardStatus } from '../../common/enums/entry-type.enum';
 
 @Injectable()
 export class CardsService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly db: JsonDbService,
     private readonly auditService: AuditService,
   ) {}
 
   async create(dto: CreateCardDto, currentUserId: string, currentUserRole: string) {
-    const account = await this.prisma.account.findUnique({
-      where: { id: dto.accountId },
-    });
+    const account = await this.db.findAccountById(dto.accountId);
 
     if (!account) {
       throw new NotFoundException('La cuenta bancaria no existe.');
@@ -42,16 +41,14 @@ export class CardsService {
 
     const limitCents = (dto.dailyLimitEur || 1000) * 100;
 
-    const card = await this.prisma.card.create({
-      data: {
-        accountId: account.id,
-        maskedPan,
-        panHash,
-        cardType: dto.cardType,
-        expirationDate,
-        status: CardStatus.ACTIVE,
-        dailyLimitCents: limitCents,
-      },
+    const card = await this.db.createCard({
+      accountId: account.id,
+      maskedPan,
+      panHash,
+      cardType: dto.cardType,
+      expirationDate: expirationDate.toISOString(),
+      status: CardStatus.ACTIVE,
+      dailyLimitCents: limitCents,
     });
 
     await this.auditService.log({
@@ -75,51 +72,43 @@ export class CardsService {
   }
 
   async findAllForUser(userId: string, currentUserRole: string) {
-    const cards = await this.prisma.card.findMany({
-      where:
-        currentUserRole === Role.ADMIN || currentUserRole === Role.AUDITOR
-          ? {}
-          : { account: { userId } },
-      include: {
-        account: {
-          select: {
-            id: true,
-            accountNumber: true,
-            currency: true,
-            userId: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const userAccounts = await this.db.findAccountsByUserId(userId);
+    const userAccountIds = new Set(userAccounts.map((a) => a.id));
 
-    return cards.map((c) => ({
-      id: c.id,
-      accountId: c.accountId,
-      accountNumber: c.account.accountNumber,
-      maskedPan: c.maskedPan,
-      cardType: c.cardType,
-      expirationDate: c.expirationDate,
-      status: c.status,
-      dailyLimitEur: c.dailyLimitCents / 100,
-      createdAt: c.createdAt,
-    }));
+    const cards =
+      currentUserRole === Role.ADMIN || currentUserRole === Role.AUDITOR
+        ? await this.db.findAllCards()
+        : this.db.cards.filter((c) => userAccountIds.has(c.accountId));
+
+    return cards.map((c) => {
+      const account = this.db.accounts.find((a) => a.id === c.accountId);
+      return {
+        id: c.id,
+        accountId: c.accountId,
+        accountNumber: account?.accountNumber || 'Desconocido',
+        maskedPan: c.maskedPan,
+        cardType: c.cardType,
+        expirationDate: c.expirationDate,
+        status: c.status,
+        dailyLimitEur: c.dailyLimitCents / 100,
+        createdAt: c.createdAt,
+      };
+    });
   }
 
   async toggleFreeze(id: string, currentUserId: string, currentUserRole: string) {
-    const card = await this.prisma.card.findUnique({
-      where: { id },
-      include: { account: true },
-    });
+    const card = await this.db.findCardById(id);
 
     if (!card) {
       throw new NotFoundException('Tarjeta no encontrada.');
     }
 
+    const account = await this.db.findAccountById(card.accountId);
+
     if (
       currentUserRole !== Role.ADMIN &&
       currentUserRole !== Role.GERENTE &&
-      card.account.userId !== currentUserId
+      account?.userId !== currentUserId
     ) {
       throw new ForbiddenException('No tiene permisos para modificar el estado de esta tarjeta.');
     }
@@ -130,10 +119,7 @@ export class CardsService {
 
     const newStatus = card.status === CardStatus.ACTIVE ? CardStatus.BLOCKED : CardStatus.ACTIVE;
 
-    const updated = await this.prisma.card.update({
-      where: { id },
-      data: { status: newStatus },
-    });
+    const updated = await this.db.updateCard(id, { status: newStatus });
 
     await this.auditService.log({
       userId: currentUserId,
@@ -144,9 +130,9 @@ export class CardsService {
     });
 
     return {
-      id: updated.id,
-      maskedPan: updated.maskedPan,
-      status: updated.status,
+      id: updated!.id,
+      maskedPan: updated!.maskedPan,
+      status: updated!.status,
       message:
         newStatus === CardStatus.BLOCKED
           ? 'Tarjeta bloqueada preventivamente con éxito.'
@@ -155,27 +141,23 @@ export class CardsService {
   }
 
   async updateLimit(id: string, dto: UpdateCardLimitDto, currentUserId: string, currentUserRole: string) {
-    const card = await this.prisma.card.findUnique({
-      where: { id },
-      include: { account: true },
-    });
+    const card = await this.db.findCardById(id);
 
     if (!card) {
       throw new NotFoundException('Tarjeta no encontrada.');
     }
 
+    const account = await this.db.findAccountById(card.accountId);
+
     if (
       currentUserRole !== Role.ADMIN &&
       currentUserRole !== Role.GERENTE &&
-      card.account.userId !== currentUserId
+      account?.userId !== currentUserId
     ) {
       throw new ForbiddenException('No tiene permisos para modificar límites de esta tarjeta.');
     }
 
-    const updated = await this.prisma.card.update({
-      where: { id },
-      data: { dailyLimitCents: dto.dailyLimitEur * 100 },
-    });
+    const updated = await this.db.updateCard(id, { dailyLimitCents: dto.dailyLimitEur * 100 });
 
     await this.auditService.log({
       userId: currentUserId,
@@ -186,9 +168,9 @@ export class CardsService {
     });
 
     return {
-      id: updated.id,
-      maskedPan: updated.maskedPan,
-      dailyLimitEur: updated.dailyLimitCents / 100,
+      id: updated!.id,
+      maskedPan: updated!.maskedPan,
+      dailyLimitEur: updated!.dailyLimitCents / 100,
     };
   }
 }
