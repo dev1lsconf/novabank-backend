@@ -46,10 +46,22 @@ export async function bootstrapServerless(): Promise<any> {
     }),
   );
 
-  // Swagger Documentation
+  // Swagger Documentation con assets CDN para compatibilidad 100% Serverless
   const swaggerConfig = new DocumentBuilder()
     .setTitle('NovaBank Core API — Sistema Bancario Empresarial')
-    .setDescription('Plataforma bancaria empresarial serverless documentada con Swagger/OpenAPI.')
+    .setDescription(
+      `
+# NovaBank Enterprise Core Banking & Ledger API
+
+Plataforma bancaria empresarial documentada con **Swagger / OpenAPI 3.0** y **Base de Datos JSON en memoria**.
+
+### Características:
+- ⚖️ **Libro Mayor por Partida Doble**: \`Sum(Débitos) === Sum(Créditos)\`.
+- ⚡ **Idempotencia Transaccional**: Cabecera \`Idempotency-Key\`.
+- 💱 **Mercado Forex**: Tipos de cambio y conversor.
+- 🛡️ **Seguridad (RBAC)**: \`CLIENTE\`, \`CAJERO\`, \`GERENTE\`, \`AUDITOR\`, \`ADMIN\`.
+      `,
+    )
     .setVersion('1.0.0')
     .addBearerAuth(
       {
@@ -73,10 +85,17 @@ export async function bootstrapServerless(): Promise<any> {
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
+
   SwaggerModule.setup('docs', app, document, {
     customSiteTitle: 'NovaBank API Docs',
+    customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.min.css',
+    customJs: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-bundle.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-standalone-preset.js',
+    ],
     swaggerOptions: {
       persistAuthorization: true,
+      docExpansion: 'list',
     },
   });
 

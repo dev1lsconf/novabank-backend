@@ -16,11 +16,11 @@ async function bootstrap() {
   // 1. Seguridad HTTP con Helmet
   app.use(
     helmet({
-      contentSecurityPolicy: false, // Permitir que Swagger UI cargue scripts/estilos sin bloqueos
+      contentSecurityPolicy: false,
     }),
   );
 
-  // 2. CORS permisivo para desarrollo y frontend
+  // 2. CORS permisivo
   app.enableCors({
     origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
@@ -53,11 +53,10 @@ Plataforma de servicios financieros corporativos diseñada con **Clean Architect
 
 ### Características Principales:
 - ⚖️ **Libro Mayor por Partida Doble (General Ledger)**: Cada movimiento genera débitos y créditos estrictamente balanceados (\`Sum(Débitos) === Sum(Créditos)\`).
-- 🔒 **Control de Concurrencia Pesimista**: Bloqueo a nivel de fila (\`SELECT ... FOR UPDATE\`) en PostgreSQL para evitar condiciones de carrera en saldos y dobles retiros.
 - ⚡ **Idempotencia Transaccional**: Cabecera \`Idempotency-Key\` para reintentos seguros sin duplicación de cobros ni transferencias.
 - 💱 **Mercado Forex y Caché Redis**: Consulta de cotizaciones mundiales con estrategia *Cache-Aside* de alta velocidad.
 - 🛡️ **Seguridad Bancaria (RBAC)**: Roles \`CLIENTE\`, \`CAJERO\`, \`GERENTE\`, \`AUDITOR\` y \`ADMIN\`.
-- ☁️ **Soporte Serverless Netlify & Docker**: Despliegue continuo vía GitHub y contenedores locales.
+- ☁️ **Soporte Serverless Netlify & Docker**: Base de datos JSON in-memory autocontenida.
       `,
     )
     .setVersion('1.0.0')
@@ -80,7 +79,7 @@ Plataforma de servicios financieros corporativos diseñada con **Clean Architect
     .addTag('Mercado de Divisas (Forex)', 'Tipos de cambio mundiales cacheados en Redis y conversor')
     .addTag('Auditoría y Cumplimiento', 'Pistas de auditoría inmutables (Audit Trail)')
     .addTag('Usuarios y Clientes', 'Gestión de perfiles de clientes y estados')
-    .addTag('Monitoreo y Salud del Sistema', 'Healthchecks de PostgreSQL, Redis y memoria')
+    .addTag('Monitoreo y Salud del Sistema', 'Healthchecks de base de datos JSON, Redis y memoria')
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
@@ -88,12 +87,11 @@ Plataforma de servicios financieros corporativos diseñada con **Clean Architect
   // Servir Swagger UI en /docs y /api/v1/docs
   SwaggerModule.setup('docs', app, document, {
     customSiteTitle: 'NovaBank API Docs',
-    customCss: `
-      .swagger-ui .topbar { background-color: #0f172a; border-bottom: 2px solid #1e293b; }
-      .swagger-ui .topbar .download-url-wrapper { display: none; }
-      .swagger-ui .info .title { color: #2563eb; }
-      body { background-color: #f8fafc; }
-    `,
+    customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.min.css',
+    customJs: [
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-bundle.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui-standalone-preset.js',
+    ],
     swaggerOptions: {
       persistAuthorization: true,
       docExpansion: 'list',

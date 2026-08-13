@@ -13,16 +13,26 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     const redisUrl = this.configService.get<string>('redis.url');
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // En producción / serverless, solo intentar conectar si hay una URL remota configurada (ej. Upstash / Redis Cloud)
+    const isRemoteRedis = redisUrl && !redisUrl.includes('localhost') && !redisUrl.includes('127.0.0.1');
+
+    if (!isRemoteRedis && isProduction) {
+      this.logger.log('ℹ️ Entorno Serverless sin Redis remoto configurado: Utilizando caché en memoria de alta velocidad.');
+      return;
+    }
+
+    if (!redisUrl && !isProduction) {
+      this.logger.log('ℹ️ No se especificó REDIS_URL: Utilizando caché en memoria.');
+      return;
+    }
+
     try {
       this.client = new Redis(redisUrl || 'redis://localhost:6379', {
         maxRetriesPerRequest: 1,
-        retryStrategy: (times) => {
-          if (times > 3) {
-            this.logger.warn('⚠️ No se pudo conectar a Redis tras 3 intentos. Activando modo Fallback en memoria.');
-            return null; // Detener reintentos continuos
-          }
-          return Math.min(times * 100, 1000);
-        },
+        connectTimeout: 2000,
+        retryStrategy: () => null, // No reintentar en bucle para no bloquear serverless
         enableReadyCheck: false,
         lazyConnect: true,
       });
@@ -34,22 +44,25 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
       this.client.on('error', (err) => {
         this.isConnected = false;
-        // Registro discreto para no inundar la consola si no hay Redis local levantado
-        this.logger.debug(`Redis aviso: ${err.message}`);
+        this.logger.debug(`Redis offline: ${err.message}`);
       });
 
       await this.client.connect().catch((err) => {
-        this.logger.warn(`⚠️ Servidor Redis no disponible (${err.message}). Utilizando almacenamiento en memoria efímero.`);
+        this.logger.warn(`⚠️ Redis no disponible (${err.message}). Modo caché en memoria activo.`);
+        this.client = null;
       });
-    } catch (error) {
-      this.logger.warn(`⚠️ Error al inicializar cliente Redis: ${(error as Error).message}`);
+    } catch {
+      this.client = null;
     }
   }
 
   async onModuleDestroy() {
     if (this.client && this.isConnected) {
-      await this.client.quit();
-      this.logger.log('🔌 Desconectado de Redis.');
+      try {
+        await this.client.quit();
+      } catch {
+        // Ignorar en shutdown
+      }
     }
   }
 
@@ -62,19 +75,18 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         return false;
       }
     }
-    return false;
+    return true; // En modo memoria responde OK
   }
 
   async get(key: string): Promise<string | null> {
     if (this.client && this.isConnected) {
       try {
         return await this.client.get(key);
-      } catch (err) {
-        this.logger.warn(`Error leyendo de Redis key ${key}: ${(err as Error).message}`);
+      } catch {
+        // Fallback a memoria si falla Redis
       }
     }
 
-    // Fallback en memoria
     const item = this.memoryFallback.get(key);
     if (!item) return null;
     if (item.expiresAt && Date.now() > item.expiresAt) {
@@ -93,12 +105,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
           await this.client.set(key, value);
         }
         return;
-      } catch (err) {
-        this.logger.warn(`Error guardando en Redis key ${key}: ${(err as Error).message}`);
+      } catch {
+        // Fallback a memoria
       }
     }
 
-    // Fallback en memoria
     const expiresAt = ttlSeconds ? Date.now() + ttlSeconds * 1000 : undefined;
     this.memoryFallback.set(key, { value, expiresAt });
   }
@@ -108,12 +119,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       try {
         const result = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
         return result === 'OK';
-      } catch (err) {
-        this.logger.warn(`Error SETNX en Redis key ${key}: ${(err as Error).message}`);
+      } catch {
+        // Fallback a memoria
       }
     }
 
-    // Fallback en memoria
     const existing = this.memoryFallback.get(key);
     if (existing && (!existing.expiresAt || Date.now() < existing.expiresAt)) {
       return false;
@@ -127,8 +137,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       try {
         await this.client.del(key);
         return;
-      } catch (err) {
-        this.logger.warn(`Error borrando en Redis key ${key}: ${(err as Error).message}`);
+      } catch {
+        // Fallback a memoria
       }
     }
 

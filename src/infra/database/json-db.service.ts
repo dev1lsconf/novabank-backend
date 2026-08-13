@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
-import * as initialData from '../../data/initial-bank-data.json';
+import { initialBankData } from '../../data/initial-bank-data';
 
 export interface UserRecord {
   id: string;
@@ -102,14 +102,13 @@ export class JsonDbService implements OnModuleInit {
   }
 
   public resetData() {
-    // Clonación profunda de los datos iniciales
-    this.users = JSON.parse(JSON.stringify((initialData as any).users || []));
-    this.accounts = JSON.parse(JSON.stringify((initialData as any).accounts || []));
-    this.transactions = JSON.parse(JSON.stringify((initialData as any).transactions || []));
-    this.journalEntries = JSON.parse(JSON.stringify((initialData as any).journalEntries || []));
-    this.cards = JSON.parse(JSON.stringify((initialData as any).cards || []));
-    this.exchangeRates = JSON.parse(JSON.stringify((initialData as any).exchangeRates || []));
-    this.auditLogs = JSON.parse(JSON.stringify((initialData as any).auditLogs || []));
+    this.users = JSON.parse(JSON.stringify(initialBankData.users || []));
+    this.accounts = JSON.parse(JSON.stringify(initialBankData.accounts || []));
+    this.transactions = JSON.parse(JSON.stringify(initialBankData.transactions || []));
+    this.journalEntries = JSON.parse(JSON.stringify(initialBankData.journalEntries || []));
+    this.cards = JSON.parse(JSON.stringify(initialBankData.cards || []));
+    this.exchangeRates = JSON.parse(JSON.stringify(initialBankData.exchangeRates || []));
+    this.auditLogs = JSON.parse(JSON.stringify(initialBankData.auditLogs || []));
   }
 
   // ==========================================
@@ -333,7 +332,6 @@ export class JsonDbService implements OnModuleInit {
     return { data: paginated, total };
   }
 
-  // Helper de transacción en memoria
   async transaction<T>(callback: (db: JsonDbService) => Promise<T>): Promise<T> {
     return callback(this);
   }
