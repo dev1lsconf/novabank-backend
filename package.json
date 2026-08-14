@@ -20,7 +20,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
-    "docker:logs": "docker compose logs -f api"
+    "docker:logs": "docker compose logs -f api",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@codegenie/serverless-express": "^4.16.0",
@@ -46,7 +47,9 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "swagger-ui-express": "^5.0.1",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "prisma": "^5.0.0",
+    "@prisma/client": "^5.0.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.5",
@@ -58,7 +61,6 @@
     "@types/jest": "^29.5.12",
     "@types/node": "^20.16.5",
     "@types/passport-jwt": "^4.0.1",
-    "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.4.0",
     "@typescript-eslint/parser": "^8.4.0",
