@@ -1,4 +1,4 @@
-import 'reflect-metadata';
+﻿import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -14,24 +14,20 @@ async function bootstrap() {
   const port = configService.get<number>('port') || 3000;
   const apiPrefix = configService.get<string>('apiPrefix') || 'api/v1';
 
-  // 1. Seguridad HTTP con Helmet
   app.use(
     helmet({
       contentSecurityPolicy: false,
     }),
   );
 
-  // 2. CORS permisivo
   app.enableCors({
     origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
 
-  // 3. Prefijo Global para la API
   app.setGlobalPrefix(apiPrefix);
 
-  // 4. Validación Global de DTOs con Class-Validator
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -43,7 +39,6 @@ async function bootstrap() {
     }),
   );
 
-  // 5. Configuración de Documentación Swagger / OpenAPI 3.0
   const swaggerConfig = new DocumentBuilder()
     .setTitle('NovaBank Core API — Sistema Bancario Empresarial')
     .setDescription(
@@ -85,7 +80,6 @@ Plataforma de servicios financieros corporativos diseñada con **Clean Architect
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
 
-  // Servir Swagger UI en /docs y /api/v1/docs
   SwaggerModule.setup('docs', app, document, {
     customSiteTitle: 'NovaBank API Docs',
     customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.0/swagger-ui.min.css',
@@ -101,8 +95,8 @@ Plataforma de servicios financieros corporativos diseñada con **Clean Architect
   });
 
   await app.listen(port);
-  logger.log(`🚀 Servidor NovaBank Core API ejecutándose en http://localhost:${port}/${apiPrefix}`);
-  logger.log(`📖 Documentación Swagger UI disponible en http://localhost:${port}/docs`);
+  logger.log(`Servidor NovaBank Core API ejecutándose en http://localhost:${port}/${apiPrefix}`);
+  logger.log(`Documentación Swagger UI disponible en http://localhost:${port}/docs`);
 }
 
 bootstrap();

@@ -1,6 +1,6 @@
-import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+﻿import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -86,7 +86,6 @@ class ApiClient {
     this.setTokens(response.data.accessToken, response.data.refreshToken);
   }
 
-  // Auth
   async login(email: string, password: string) {
     const response = await this.client.post('/auth/login', { email, password });
     this.setTokens(response.data.accessToken, response.data.refreshToken);
@@ -108,7 +107,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Accounts
   async getAccounts() {
     const response = await this.client.get('/accounts');
     return response.data;
@@ -129,7 +127,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Transfers
   async createTransfer(data: { fromAccountId: string; toAccountNumber: string; amountCents: number; currency: string; description?: string; idempotencyKey: string }) {
     const response = await this.client.post('/transfers', data);
     return response.data;
@@ -140,7 +137,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Operations (Deposits/Withdrawals)
   async deposit(data: { accountId: string; amountCents: number; currency: string; description?: string; idempotencyKey: string }) {
     const response = await this.client.post('/operations/deposit', data);
     return response.data;
@@ -151,7 +147,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Cards
   async getCards() {
     const response = await this.client.get('/cards');
     return response.data;
@@ -182,7 +177,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Forex
   async getExchangeRates() {
     const response = await this.client.get('/forex/rates');
     return response.data;
@@ -193,19 +187,16 @@ class ApiClient {
     return response.data;
   }
 
-  // Audit
   async getAuditLogs(params?: { action?: string; resource?: string; userId?: string; page?: number; limit?: number }) {
     const response = await this.client.get('/audit', { params });
     return response.data;
   }
 
-  // Health
   async healthCheck() {
     const response = await this.client.get('/health');
     return response.data;
   }
 
-  // Users
   async getUsers(params?: { page?: number; limit?: number }) {
     const response = await this.client.get('/users', { params });
     return response.data;
@@ -219,7 +210,6 @@ class ApiClient {
 
 export const api = new ApiClient();
 
-// Initialize tokens from localStorage on client side
 if (typeof window !== 'undefined') {
   api.loadTokensFromStorage();
 }
