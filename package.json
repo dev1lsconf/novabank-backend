@@ -22,6 +22,9 @@
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f api"
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
     "@codegenie/serverless-express": "^4.16.0",
     "@nestjs/common": "^10.4.0",
