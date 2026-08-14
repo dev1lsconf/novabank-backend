@@ -1,4 +1,4 @@
-[build]
+﻿[build]
   command = "npm run build"
   functions = "dist/netlify/functions"
   publish = "public"
@@ -9,7 +9,6 @@
 [functions]
   node_bundler = "nft"
 
-# Redirección de Swagger Docs al handler de la API
 [[redirects]]
   from = "/docs"
   to = "/.netlify/functions/api/docs"
@@ -28,20 +27,12 @@
   status = 200
   force = true
 
-# Redirección de todos los endpoints de la API (/api/v1/*)
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/api/:splat"
   status = 200
   force = true
 
-# Redirección por defecto de la raíz al Swagger UI
-[[redirects]]
-  from = "/"
-  to = "/docs"
-  status = 302
-
-# Cabeceras de seguridad bancaria
 [[headers]]
   for = "/*"
   [headers.values]
